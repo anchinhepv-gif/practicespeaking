@@ -1,0 +1,49 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Vietnamese speaking practice</title>
+<style>:root{--bg:#f9e9df;--fg:#4a3430;--card:#fff8f0;--ac:#e58f9a;--bd:#8b5e52;--mu:#8a6f66;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#2a1f22;--fg:#f6e3da;--card:#3a2a2e;--bd:#c98f80;--mu:#c4a69c}}
+:root[data-theme=dark]{--bg:#2a1f22;--fg:#f6e3da;--card:#3a2a2e;--bd:#c98f80;--mu:#c4a69c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,sans-serif;padding:10px}.card{background:var(--card);border:3px solid var(--bd);box-shadow:4px 4px 0 var(--bd);border-radius:6px;padding:12px;max-width:680px;margin:10px auto}
+button{font:inherit;border:2px solid var(--bd);border-radius:5px;padding:8px 14px;margin:3px;background:#f6d9cc;color:#4a3430;cursor:pointer}button.p{background:var(--ac);font-weight:700}button:disabled{opacity:.4}
+textarea,input{font:inherit;width:100%;padding:8px;border-radius:5px;border:2px solid var(--bd);background:var(--card);color:var(--fg)}.fr{color:var(--mu);font-size:13px}
+.w{display:inline-block;padding:2px 8px;margin:2px;border-radius:5px;font-weight:600}.ok{background:#bfe6c0;color:#124}.tone{background:#ffd9a0;color:#432}.bad{background:#f6b0b0;color:#411}.miss{background:#ddd;color:#555;text-decoration:line-through}.sc{font-size:44px;font-weight:800}</style></head><body>
+<div class="card"><h2 style="margin:0 0 6px">🎤 Vietnamese speaking practice</h2><div id="st" class="fr"></div></div>
+<div class="card"><div class="fr">Sentence to practise (you can edit it)</div><textarea id="tx" rows="2"></textarea><button id="ls">🔊 Listen</button><button id="lsl">🐢 Listen slowly</button></div>
+<div class="card"><button id="rc" class="p">🎤 Record</button><button id="sp" disabled>■ Stop</button> <b id="ti"></b><div id="live" class="fr">Press Record. Wait for “● Recording”, say the sentence, then press Stop.</div><div id="res"></div></div>
+<div class="card"><b>Phrase bank</b><div id="tabs"></div><div id="bank"></div></div>
+<div class="card"><button id="bk">⬅ Back to the game</button><div id="bm" class="fr"></div></div>
+<script>
+const $=s=>document.querySelector(s),SR=window.SpeechRecognition||window.webkitSpeechRecognition,Q=new URLSearchParams(location.search),AL=(Q.get('v')||'Linh').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+const D=['không','một','hai','ba','bốn','năm','sáu','bảy','tám','chín'],v2=r=>{const t=r/10|0,u=r%10,us=u?' '+(u==5?'lăm':u==1&&t>1?'mốt':D[u]):'';return t==0?D[u]:t==1?'mười'+us:D[t]+' mươi'+us},viet=n=>n>=100?D[n/100|0]+' trăm'+(n%100?' '+v2(n%100):''):v2(n);
+let VO=null;const pick=()=>{if(!window.speechSynthesis)return;const v=speechSynthesis.getVoices().filter(x=>/^vi/i.test(x.lang));VO=v.find(x=>AL.some(a=>x.name.toLowerCase().includes(a)))||null;stat()};
+function stat(){$('#st').innerHTML=`Microphone scoring: <b>${SR?'available (Chrome / Edge)':'NOT available in this browser, use Chrome or Edge'}</b> · Voice: <b>${VO?VO.name:'no approved voice here (wanted: '+AL.join(', ')+')'}</b>`}
+if(window.speechSynthesis){speechSynthesis.onvoiceschanged=pick;pick()}stat();
+const say=r=>{const t=$('#tx').value.trim();if(!t)return;if(!VO||!window.speechSynthesis){$('#live').textContent='No approved Vietnamese voice on this device. Install it (see your teacher) or read the sentence yourself.';return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='vi-VN';u.voice=VO;u.rate=r;speechSynthesis.speak(u)};
+$('#ls').onclick=()=>say(.9);$('#lsl').onclick=()=>say(.55);
+const strip=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d'),norm=s=>s.toLowerCase().replace(/\d+/g,m=>' '+viet(+m)+' ').replace(/[.,!?;:"“”()]/g,' ').replace(/\s+/g,' ').trim();
+function align(t,h){const n=t.length,m=h.length,D2=Array.from({length:n+1},()=>Array(m+1).fill(0)),c=(a,b)=>a==b?0:strip(a)==strip(b)?.5:1;for(let i=1;i<=n;i++)D2[i][0]=i;for(let j=1;j<=m;j++)D2[0][j]=j;
+ for(let i=1;i<=n;i++)for(let j=1;j<=m;j++)D2[i][j]=Math.min(D2[i-1][j]+1,D2[i][j-1]+1,D2[i-1][j-1]+c(t[i-1],h[j-1]));let i=n,j=m;const r=Array(n);
+ while(i>0||j>0){if(i>0&&j>0&&D2[i][j]==D2[i-1][j-1]+c(t[i-1],h[j-1])){const k=c(t[i-1],h[j-1]);r[i-1]={w:t[i-1],h:h[j-1],s:k==0?'ok':k==.5?'tone':'bad'};i--;j--}else if(i>0&&D2[i][j]==D2[i-1][j]+1){r[i-1]={w:t[i-1],h:'',s:'miss'};i--}else j--}return r}
+function score(h){h=norm(h||'');if(!h){$('#res').innerHTML='<p>Nothing was heard. Press Record, wait for “● Recording”, then speak clearly.</p>';return}
+ const T=norm($('#tx').value).split(' ').filter(Boolean),H=h.split(' ').filter(Boolean);if(!T.length)return;const a=align(T,H);let p=0;a.forEach(x=>p+=x.s=='ok'?1:x.s=='tone'?.5:0);const sc=Math.round(p/T.length*100),tones=a.filter(x=>x.s=='tone');
+ $('#res').innerHTML=`<div class="sc">${sc}% ${sc>=85?'🎉':sc>=60?'👍':'🔁'}</div><div>${a.map(x=>`<span class="w ${x.s}" title="${x.s=='tone'?'you said '+x.h:x.s=='bad'?'you said '+x.h:''}">${x.w}</span>`).join('')}</div><p class="fr">You said: “${h}”</p>`+
+ (tones.length?`<p>🟠 <b>Tone / vowel marks:</b> ${tones.map(x=>`<b>${x.w}</b> (heard “${x.h}”)`).join(', ')}. The letters are right but the tone mark is different. Listen again and copy the pitch.</p>`:'')+(a.some(x=>x.s=='bad'||x.s=='miss')?'<p>🔴 Red = a different word was heard. Grey = a word was missing. Listen again and retry.</p>':'')}
+const EM={'not-allowed':'Microphone blocked. Click the lock icon in the address bar, allow the microphone, then reload this page.','service-not-allowed':'Speech service blocked by the browser.','no-speech':'No speech was heard. Move closer to the microphone and try again.','audio-capture':'No microphone found.','network':'The speech service could not be reached (network).','aborted':'Recording stopped.'};
+let rec=null,tm=null,last='',err='';
+$('#rc').onclick=()=>{if(!SR)return fallback();last='';err='';$('#res').innerHTML='';$('#live').textContent='Starting the microphone…';$('#rc').disabled=true;rec=new SR();rec.lang='vi-VN';rec.interimResults=true;rec.continuous=true;
+ rec.onaudiostart=()=>{$('#live').textContent='● Recording… speak now';$('#sp').disabled=false;const t0=Date.now();tm=setInterval(()=>$('#ti').textContent=((Date.now()-t0)/1000|0)+'s',400)};
+ rec.onresult=e=>{let s='';for(let i=0;i<e.results.length;i++)s+=e.results[i][0].transcript+' ';last=s;$('#live').textContent='● '+s};
+ rec.onerror=e=>{err=e.error;$('#live').textContent='⚠️ '+(EM[e.error]||e.error)};
+ rec.onend=()=>{clearInterval(tm);$('#ti').textContent='';$('#sp').disabled=true;$('#rc').disabled=false;if(!err||last)score(last);else if(err=='no-speech')$('#res').innerHTML='<p>'+EM['no-speech']+'</p>'};
+ try{rec.start()}catch(e){$('#live').textContent='⚠️ '+e.message;$('#rc').disabled=false}};
+$('#sp').onclick=()=>{if(rec){rec.stop();$('#live').textContent='Scoring…'}};
+let mr=null,ch=[];function fallback(){if(mr&&mr.state=='recording'){mr.stop();return}navigator.mediaDevices.getUserMedia({audio:true}).then(s=>{ch=[];mr=new MediaRecorder(s);mr.ondataavailable=e=>ch.push(e.data);mr.onstop=()=>{s.getTracks().forEach(t=>t.stop());$('#res').innerHTML='<p>Your recording (this browser cannot score speech, compare it with the model voice):</p><audio controls src="'+URL.createObjectURL(new Blob(ch))+'"></audio>';$('#rc').textContent='🎤 Record';$('#live').textContent=''};mr.start();$('#rc').textContent='■ Stop recording';$('#live').textContent='● Recording… press the button again to stop'}).catch(e=>$('#live').textContent='⚠️ '+e.name)}
+const BANK={Pronouns:['anh','chị','em','bạn','chú','cô','ông','bà','cháu','mình','tôi'],Greetings:['Chào anh','Chào chị','Chào em','Chào bạn','Chào chú','Chào cô','Chào ông','Chào bà','Hẹn gặp lại','Cảm ơn chị nhé','Không có gì ạ','Không sao','Chờ một chút ạ'],
+ Dishes:['cà phê đen','cà phê sữa','trà đá','trà chanh','trà sữa','sinh tố hoa quả','nước ép hoa quả','bánh mì','cheesecake','tiramisu','bánh flan','bánh su kem'],
+ Ordering:['Cho em một cà phê sữa ít đá ạ','Cho chị hai trà chanh ít đường nhé','Cho tôi một bánh mì không rau nhé','Cho em thêm một cheesecake nữa ạ','Em ơi, nhà vệ sinh ở đâu thế?','Anh ơi, tính tiền ạ','Đây là gì?','Ngon lắm','Nóng quá','Nhiều đá quá'],Numbers:[]};
+let cur='Pronouns';function bank(){$('#tabs').innerHTML=Object.keys(BANK).map(k=>`<button data-t="${k}" class="${k==cur?'p':''}">${k}</button>`).join('');
+ $('#bank').innerHTML=cur=='Numbers'?'<div class="fr">Type a number (0–199) to practise saying it</div><input id="nn" type="number" min="0" max="199" placeholder="e.g. 25"><div>'+[15,21,24,25,35,85,100,110,125].map(n=>`<button data-n="${n}">${n}</button>`).join('')+'</div>':BANK[cur].map(x=>`<button data-x="${x}">${x}</button>`).join('')}
+document.addEventListener('click',e=>{const b=e.target;if(b.dataset.t){cur=b.dataset.t;bank()}else if(b.dataset.x){$('#tx').value=b.dataset.x;$('#res').innerHTML='';window.scrollTo(0,0)}else if(b.dataset.n){$('#tx').value=viet(+b.dataset.n);window.scrollTo(0,0)}});
+document.addEventListener('input',e=>{if(e.target.id=='nn'){const n=+e.target.value;if(n>=0&&n<200)$('#tx').value=viet(n)}});
+$('#bk').onclick=()=>{window.close();$('#bm').textContent='If this tab did not close, close it yourself to return to the game.'};
+$('#tx').value=decodeURIComponent(location.hash.slice(1))||'Chào bạn';bank();
+</script></body></html>
